@@ -1,0 +1,74 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: eks-spot-demo-2
+  region: ap-southeast-1
+
+managedNodeGroups:
+  - name: core-spot
+    instanceTypes: ["m5.2xlarge","m5a.2xlarge","m4.2xlarge","m3.2xlarge","m5n.2xlarge"]
+    minSize: 2
+    desiredCapacity: 3
+    maxSize: 20
+    spot: true
+    labels:
+      type: core
+      ec2: spot
+    tags:
+      type: core
+      ec2: spot
+    iam:
+      withAddonPolicies:
+        autoScaler: true
+        appMesh: true
+        albIngress: true
+        xRay: true
+        externalDNS: true
+        certManager: true
+
+  # `instanceTypes` defaults to [`m5.large`]
+  - name: reserved-spot
+    spot: true
+    minSize: 2
+    desiredCapacity: 3
+    maxSize: 20
+    labels:
+      type: reserved
+      ec2: spot
+    tags:
+      type: reserved
+      ec2: spot
+    iam:
+      withAddonPolicies:
+        autoScaler: true
+        appMesh: true
+        albIngress: true
+        xRay: true
+        externalDNS: true
+        certManager: true
+      
+  # On-Demand instances
+  - name: core-ondemand-1a
+    instanceTypes: ["m5.2xlarge","m5a.2xlarge"]
+    minSize: 2
+    desiredCapacity: 3
+    maxSize: 10
+    labels:
+      type: core
+      ec2: ondemand
+      az: 1a
+    tags:
+      type: core
+      ec2: ondemand
+    availabilityZones: ["ap-southeast-1a"]
+    iam:
+      withAddonPolicies:
+        autoScaler: true
+        appMesh: true
+        albIngress: true
+        xRay: true
+        externalDNS: true
+        certManager: true
+        
+availabilityZones: ["ap-southeast-1a", "ap-southeast-1b", "ap-southeast-1c"]
