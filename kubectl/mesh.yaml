@@ -1,0 +1,165 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: prod
+  labels:
+    mesh: webservice
+    appmesh.k8s.aws/sidecarInjectorWebhook: enabled
+---
+apiVersion: appmesh.k8s.aws/v1beta2
+kind: Mesh
+metadata:
+  name: webservice
+  namespace: prod
+spec:
+  namespaceSelector:
+    matchLabels:
+      mesh: webservice
+---
+apiVersion: appmesh.k8s.aws/v1beta2
+kind: VirtualNode
+metadata:
+  name: expressjs-gateway-vn
+  namespace: prod
+spec:
+  podSelector:
+    matchLabels:
+      app: expressjs-gateway
+  listeners:
+    - portMapping:
+        port: 3001
+        protocol: http
+      healthCheck:
+        protocol: http
+        path: '/'
+        healthyThreshold: 2
+        unhealthyThreshold: 2
+        timeoutMillis: 2000
+        intervalMillis: 5000
+  backends:
+    - virtualService:
+        virtualServiceRef:
+          name: expressjs-red-vs
+    - virtualService:
+        virtualServiceRef:
+          name: expressjs-black-vs
+  serviceDiscovery:
+    dns:
+      hostname: expressjs-gateway.prod.svc.cluster.local
+---
+apiVersion: appmesh.k8s.aws/v1beta2
+kind: VirtualService
+metadata:
+  name: expressjs-red-vs
+  namespace: prod
+spec:
+  awsName: expressjs-red.prod.svc.cluster.local
+  provider:
+    virtualRouter:
+      virtualRouterRef:
+        name: expressjs-red-vr
+---
+apiVersion: appmesh.k8s.aws/v1beta2
+kind: VirtualService
+metadata:
+  name: expressjs-black-vs
+  namespace: prod
+spec:
+  awsName: expressjs-black.prod.svc.cluster.local
+  provider:
+    virtualRouter:
+      virtualRouterRef:
+        name: expressjs-black-vr
+---
+apiVersion: appmesh.k8s.aws/v1beta2
+kind: VirtualRouter
+metadata:
+  name: expressjs-red-vr
+  namespace: prod
+spec:
+  listeners:
+    - portMapping:
+        port: 3000
+        protocol: http
+  routes:
+    - name: expressjs-red-routes
+      httpRoute:
+        match:
+          prefix: /
+        action:
+          weightedTargets:
+            - virtualNodeRef:
+                name: expressjs-red-vn
+              weight: 100
+---
+apiVersion: appmesh.k8s.aws/v1beta2
+kind: VirtualRouter
+metadata:
+  name: expressjs-black-vr
+  namespace: prod
+spec:
+  listeners:
+    - portMapping:
+        port: 3000
+        protocol: http
+  routes:
+    - name: expressjs-black-routes
+      httpRoute:
+        match:
+          prefix: /
+        action:
+          weightedTargets:
+            - virtualNodeRef:
+                name: expressjs-black-vn
+              weight: 100
+---
+apiVersion: appmesh.k8s.aws/v1beta2
+kind: VirtualNode
+metadata:
+  name: expressjs-red-vn
+  namespace: prod
+spec:
+  podSelector:
+    matchLabels:
+      app: expressjs-red
+      version: v1
+  listeners:
+    - portMapping:
+        port: 3000
+        protocol: http
+      healthCheck:
+        protocol: http
+        path: '/'
+        healthyThreshold: 2
+        unhealthyThreshold: 2
+        timeoutMillis: 2000
+        intervalMillis: 5000
+  serviceDiscovery:
+    dns:
+      hostname: expressjs-red.prod.svc.cluster.local
+---
+apiVersion: appmesh.k8s.aws/v1beta2
+kind: VirtualNode
+metadata:
+  name: expressjs-black-vn
+  namespace: prod
+spec:
+  podSelector:
+    matchLabels:
+      app: expressjs-black
+      version: v1
+  listeners:
+    - portMapping:
+        port: 3000
+        protocol: http
+      healthCheck:
+        protocol: http
+        path: '/'
+        healthyThreshold: 2
+        unhealthyThreshold: 2
+        timeoutMillis: 2000
+        intervalMillis: 5000
+  serviceDiscovery:
+    dns:
+      hostname: expressjs-black.prod.svc.cluster.local
