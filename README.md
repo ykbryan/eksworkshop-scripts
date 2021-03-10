@@ -11,3 +11,8 @@ spotctl configure
 
 curl -sfL https://spotinst-public.s3.amazonaws.com/integrations/kubernetes/eksctl/eksctl.sh | sh
 
+kubectl -n kube-system logs -f deployment/kube-ops-view
+
+kubectl -n meshwebservice rollout restart deployment expressjs-black expressjs-red expressjs-gateway
+
+https://spot.io/blog/kubernetes-cluster-autoscaler-features-limitations-and-comparisons-to-ocean-by-spot/
